@@ -2,7 +2,7 @@
 	<tr>
 		<td align="left" width="70">
 			<strong>Audit Log</strong><br />
-			Tamper resistant, off-site audit logging for WordPress. <a href="https://hmn.slack.com/messages/">#</a>
+			Tamper resistant, off-site audit logging for WordPress.</a>
 		</td>
 		<td rowspan="2" width="20%">
 			<img src="https://hmn.md/content/themes/hmnmd/assets/images/hm-logo.svg" width="100" />
