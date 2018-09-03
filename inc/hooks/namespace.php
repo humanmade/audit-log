@@ -6,6 +6,9 @@ use function HM\Platform\Audit_Log\insert_item;
 use WP_Post;
 
 function bootstrap() {
+	if ( ! apply_filters( 'hm_platform_audit_log_add_default_hooks', true ) ) {
+		return;
+	}
 	add_action( 'wp_insert_post', __NAMESPACE__ . '\\on_wp_insert_post', 10, 3 );
 }
 

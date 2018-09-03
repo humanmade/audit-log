@@ -11,9 +11,16 @@ function bootstrap() {
 }
 
 /**
- * Add an audit log item.
+ *  Add an audit log item.
  *
- * Most global state fields are auto-discovered, so only a subset of params are required.
+ * Most global state fields are auto-discovered, so only a subset of params are required. Added items are buffered on script-execution
+ * end (after a call to fastcgi_finish_request) to not slow down response times.
+ *
+ * @param string $name The name/type for the item. E.g. 'CreatedPost'
+ * @param string $description A human readable description of what happened. Should be in the past simple passive. E.g "Hello World was updated"
+ * @param string options $object The object that has changed / been created. Used as a reference for the log entry.
+ * @param array optional $event Arbitrary array of data detailing the change event.
+ * @return void
  */
 function insert_item( string $name, string $description, $object = '', array $event = [] ) {
 	$user = wp_get_current_user();
@@ -95,12 +102,22 @@ function buffer_send_item( int $date, string $name, string $description, string 
 	$hm_platform_audit_log_buffered_items[] = $body;
 }
 
+function get_ses_queue_url() : string {
+	$url = defined( 'AUDIT_LOG_SQS_QUEUE_URL' ) ? AUDIT_LOG_SQS_QUEUE_URL : '';
+	return apply_filters( 'hm_platform_audit_log_sqs_queue_url', $url );
+}
+
+function get_dynamodb_table() : string {
+	$url = defined( 'AUDIT_LOG_DYNAMO_DB_TABLE' ) ? AUDIT_LOG_DYNAMO_DB_TABLE : '';
+	return apply_filters( 'hm_platform_audit_log_dynamodb_table', $url );
+}
+
 function send_buffered_items() {
 	global $hm_platform_audit_log_buffered_items;
 	if ( ! $hm_platform_audit_log_buffered_items ) {
 		return;
 	}
-	if ( ! defined( 'AUDIT_LOG_SQS_QUEUE_URL' ) ) {
+	if ( ! get_ses_queue_url() ) {
 		return null;
 	}
 
@@ -108,13 +125,13 @@ function send_buffered_items() {
 		fastcgi_finish_request();
 	}
 
-	$client = get_aws_sdk()->createSqs([
+	$client = get_aws_sdk()->createSqs( apply_filters( 'hm_platform_audit_log_sqs_client_args', [
 		'http' => [
 			'timeout' => 0.0001,
 		],
-	]);
+	] ) );
 
-	$queue_url = apply_filters( 'hm_platform_audit_log_sqs_queue_url', AUDIT_LOG_SQS_QUEUE_URL );
+	$queue_url = get_ses_queue_url();
 
 	foreach ( $hm_platform_audit_log_buffered_items as $key => $body ) {
 		unset( $hm_platform_audit_log_buffered_items[ $key ] );
@@ -129,8 +146,18 @@ function send_buffered_items() {
 	}
 }
 
-function get_items( $previous_item = null, array $eq_filters = [], int $from_date = null, int $to_date = null, $descending = true ) {
-	$client = get_aws_sdk()->createDynamoDB();
+/**
+ * Get items from the Audit Log.
+ *
+ * @param string $previous_item The Id of the previous item, for pagination.
+ * @param array  $eq_filters A map of key => value pairs for equality filters.
+ * @param integer $from_date Limit results to items after the specified date.
+ * @param integer $to_date Limit results to items before the specified date.
+ * @param boolean $descending Whether to get the items in descending order.
+ * @return array [ 'item => [ [ 'Id  => string, Name => string ... ] ], 'has_more' => bool ]
+ */
+function get_items( string $previous_item = null, array $eq_filters = [], int $from_date = null, int $to_date = null, $descending = true ) {
+	$client = get_aws_sdk()->createDynamoDB( apply_filters( 'hm_platform_audit_log_dynamodb_client_args', [] ) );
 
 	$conditions = [
 		'Site_Id' => [
@@ -155,7 +182,7 @@ function get_items( $previous_item = null, array $eq_filters = [], int $from_dat
 	}
 
 	$query = [
-		'TableName'     => AUDIT_LOG_DYNAMO_DB_TABLE,
+		'TableName'     => get_dynamodb_table(),
 		'KeyConditions' => $conditions,
 		'ScanIndexForward' => ! $descending,
 	];

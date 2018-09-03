@@ -64,7 +64,12 @@ class List_Table extends WP_List_Table {
 	}
 
 	function column_user( array $item ) : string {
-		return $item['User_Display_Name'];
+		return sprintf(
+			'<img src="%s" width=18 height=18 /> %s<br />%s',
+			$item['User_Avatar_Url'],
+			$item['User_Display_Name'],
+			$item['User_Email']
+		);
 	}
 
 	function column_ip( array $item ) : string {

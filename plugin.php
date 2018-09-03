@@ -13,6 +13,6 @@ require_once __DIR__ . '/inc/hooks/namespace.php';
 require_once __DIR__ . '/inc/admin/namespace.php';
 
 bootstrap();
-Hooks\bootstrap();
 
+add_action( 'plugins_loaded', __NAMESPACE__. '\\Hooks\\bootstrap' );
 add_action( 'admin_menu', __NAMESPACE__ . '\\Admin\\bootstrap' );
