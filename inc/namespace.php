@@ -102,7 +102,7 @@ function buffer_send_item( int $date, string $name, string $description, string 
 	$hm_platform_audit_log_buffered_items[] = $body;
 }
 
-function get_ses_queue_url() : string {
+function get_sqs_queue_url() : string {
 	$url = defined( 'AUDIT_LOG_SQS_QUEUE_URL' ) ? AUDIT_LOG_SQS_QUEUE_URL : '';
 	return apply_filters( 'hm_platform_audit_log_sqs_queue_url', $url );
 }
@@ -117,7 +117,7 @@ function send_buffered_items() {
 	if ( ! $hm_platform_audit_log_buffered_items ) {
 		return;
 	}
-	if ( ! get_ses_queue_url() ) {
+	if ( ! get_sqs_queue_url() ) {
 		return null;
 	}
 
@@ -131,7 +131,7 @@ function send_buffered_items() {
 		],
 	] ) );
 
-	$queue_url = get_ses_queue_url();
+	$queue_url = get_sqs_queue_url();
 
 	foreach ( $hm_platform_audit_log_buffered_items as $key => $body ) {
 		unset( $hm_platform_audit_log_buffered_items[ $key ] );
