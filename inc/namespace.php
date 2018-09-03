@@ -4,6 +4,7 @@ namespace HM\Platform\Audit_Log;
 
 use Exception;
 use function HM\Platform\get_aws_sdk;
+use WP_Error;
 
 function bootstrap() {
 	register_shutdown_function( __NAMESPACE__ . '\\send_buffered_items' );
@@ -57,6 +58,13 @@ function insert_item( string $name, string $description, $object = '', array $ev
 		$request_id,
 		$event
 	);
+
+	// If we are a CLI process, don't buffer items
+	// as they can be very long running and cause
+	// large memory usage.
+	if ( php_sapi_name() === 'cli' ) {
+		send_buffered_items();
+	}
 }
 
 /**
@@ -96,7 +104,9 @@ function send_buffered_items() {
 		return null;
 	}
 
-	fastcgi_finish_request();
+	if ( function_exists( 'fastcgi_finish_request' ) ) {
+		fastcgi_finish_request();
+	}
 
 	$client = get_aws_sdk()->createSqs([
 		'http' => [
@@ -106,9 +116,10 @@ function send_buffered_items() {
 
 	$queue_url = apply_filters( 'hm_platform_audit_log_sqs_queue_url', AUDIT_LOG_SQS_QUEUE_URL );
 
-	foreach ( $hm_platform_audit_log_buffered_items as $body ) {
+	foreach ( $hm_platform_audit_log_buffered_items as $key => $body ) {
+		unset( $hm_platform_audit_log_buffered_items[ $key ] );
 		try {
-			$client->sendMessage([
+			$response = $client->sendMessage([
 				'MessageBody' => json_encode( $body ),
 				'QueueUrl'    => $queue_url,
 			]);
@@ -116,4 +127,88 @@ function send_buffered_items() {
 			trigger_error( 'Unable to send item to audit log. ' . $e->getMessage() );
 		}
 	}
+}
+
+function get_items( $previous_item = null, array $eq_filters = [], int $from_date = null, int $to_date = null, $descending = true ) {
+	$client = get_aws_sdk()->createDynamoDB();
+
+	$conditions = [
+		'Site_Id' => [
+			'AttributeValueList' => [ [ 'N' => (string) get_current_blog_id() ] ],
+			'ComparisonOperator' => 'EQ',
+		],
+	];
+
+	if ( $from_date || $to_date ) {
+		$conditions['Id'] = [ 'AttributeValueList' => [] ];
+		if ( $from_date ) {
+			$conditions['Id']['AttributeValueList'][] = [ 'S' => date( DATE_ISO8601, $from_date ) ];
+			$conditions['Id']['ComparisonOperator'] = 'GE';
+		}
+		if ( $to_date ) {
+			$conditions['Id']['AttributeValueList'][] = [ 'S' => date( DATE_ISO8601, $to_date ) ];
+			$conditions['Id']['ComparisonOperator'] = 'LE';
+		}
+		if ( $from_date && $to_date ) {
+			$conditions['Id']['ComparisonOperator'] = 'BETWEEN';
+		}
+	}
+
+	$query = [
+		'TableName'     => AUDIT_LOG_DYNAMO_DB_TABLE,
+		'KeyConditions' => $conditions,
+		'ScanIndexForward' => ! $descending,
+	];
+
+	// If we are not doing any filter expressions we can set the limit to 100. The limit refers to the
+	// pre-filter expression count, so if we have a filter-expression we don't want to add pre-filter
+	// limits.
+	if ( ! $eq_filters ) {
+		$query['Limit'] = 100;
+	}
+
+	if ( $previous_item ) {
+		$query['ExclusiveStartKey'] = [
+			'Id' => [
+				'S' => $previous_item
+			],
+			'Site_Id' => [
+				'N' => (string) get_current_blog_id()
+			],
+		];
+	}
+
+	foreach ( $eq_filters as $key => $value ) {
+		$query['QueryFilter'][ $key ] = [
+			'AttributeValueList' => [ [ 'S' => (string) $value ] ],
+			'ComparisonOperator' => 'EQ',
+		];
+	}
+
+	try {
+		$result = $client->getIterator( 'Query', $query );
+	} catch ( Exception $e ) {
+		return new WP_Error( 'aws-error', $e->getMessage() );
+	}
+
+	$items = [];
+	$has_more = false;
+	foreach ( $result as $item ) {
+		if ( count( $items ) > 100 ) {
+			$has_more = $item['Id']['S'];
+			break;
+		}
+		$items[] = $item;
+	}
+
+	$items = array_map( function ( $item ) {
+		return array_map( function ( $item ) {
+			return array_values( $item )[0];
+		}, $item );
+	}, $items );
+
+	return [
+		'items' => $items,
+		'has_more' => $has_more,
+	];
 }
