@@ -75,7 +75,7 @@ class REST_Controller extends WP_Rest_Controller {
 	public function prepare_item_for_response( $item, $request ) : array {
 		return [
 			'id'                => $item['Id'],
-			'date'              => $item['Date'],
+			'date'              => date( DATE_RFC3339, strtotime( $item['Date'] ) ),
 			'object'            => $item['Object_Id'],
 			'description'       => $item['Description'],
 			'user_id'           => (int) $item['User_Id'],
