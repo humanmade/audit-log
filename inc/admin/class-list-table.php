@@ -18,7 +18,7 @@ class List_Table extends WP_List_Table {
 
 	protected function get_sortable_columns() {
 		return [
-			'item_date' => array( 'date', false ),
+			'item_date' => [ 'date', false ],
 		];
 	}
 
