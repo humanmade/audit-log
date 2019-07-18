@@ -44,6 +44,7 @@ class REST_Controller extends WP_Rest_Controller {
 						],
 					],
 				],
+				'schema' => [ $this, 'get_item_schema' ],
 			]
 		);
 	}
@@ -88,6 +89,64 @@ class REST_Controller extends WP_Rest_Controller {
 			'type'              => $item['Name'],
 			'site_id'           => (int) $item['Site_Id'],
 			'site_url'          => $item['Site_Url'],
+		];
+	}
+
+	/**
+	 * Retrieves the schema, conforming to JSON Schema.
+	 *
+	 * @return array Item schema data.
+	 */
+	public function get_item_schema() {
+		return [
+			'$schema'    => 'http://json-schema.org/schema#',
+			'title'      => 'audit-log',
+			'type'       => 'object',
+			'properties'   => [
+				'id'                => [
+					'type'             => 'string',
+				],
+				'type'              => [
+					'type'             => 'string',
+				],
+				'date'              => [
+					'type'             => 'string',
+					'format'           => 'date-time',
+				],
+				'object'            => [
+					'type'             => 'string',
+				],
+				'description'       => [
+					'type'             => 'string',
+				],
+				'user_id'           => [
+					'type'             => 'integer',
+				],
+				'user_email'        => [
+					'type'             => 'string',
+				],
+				'user_avatar_url'   => [
+					'type'             => 'string',
+				],
+				'user_username'     => [
+					'type'             => 'string',
+				],
+				'user_display_name' => [
+					'type'             => 'string',
+				],
+				'user_ip'           => [
+					'type'             => 'string',
+				],
+				'event'             => [
+					'type'             => 'object',
+				],
+				'site_id'           => [
+					'type'             => 'integer',
+				],
+				'site_url'          => [
+					'type'             => 'string',
+				],
+			],
 		];
 	}
 }
