@@ -197,10 +197,10 @@ function get_items( string $previous_item = null, array $eq_filters = [], int $f
 	if ( $previous_item ) {
 		$query['ExclusiveStartKey'] = [
 			'Id' => [
-				'S' => $previous_item
+				'S' => $previous_item,
 			],
 			'Site_Id' => [
-				'N' => (string) get_current_blog_id()
+				'N' => (string) get_current_blog_id(),
 			],
 		];
 	}
