@@ -3,7 +3,7 @@
 namespace HM\Platform\Audit_Log;
 
 use Exception;
-use function HM\Platform\get_aws_sdk;
+use function Altis\get_aws_sdk;
 use WP_Error;
 
 function bootstrap() {
