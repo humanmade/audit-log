@@ -239,3 +239,51 @@ function get_items( string $previous_item = null, array $eq_filters = [], int $f
 		'has_more' => $has_more,
 	];
 }
+
+/**
+ * Get a single audit log item by ID.
+ *
+ * @param string $item_id The ID of the item to retrieve.
+ * @return array|WP_Error The item data or WP_Error on failure.
+ */
+function get_item( string $item_id ) {
+	$client = get_aws_sdk()->createDynamoDB( apply_filters( 'hm_platform_audit_log_dynamodb_client_args', [] ) );
+
+	$conditions = [
+		'Site_Id' => [
+			'AttributeValueList' => [ [ 'N' => (string) get_current_blog_id() ] ],
+			'ComparisonOperator' => 'EQ',
+		],
+		'Id' => [
+			'AttributeValueList' => [ [ 'S' => $item_id ] ],
+			'ComparisonOperator' => 'EQ',
+		],
+	];
+
+	$query = [
+		'TableName'     => get_dynamodb_table(),
+		'KeyConditions' => $conditions,
+	];
+
+	try {
+		$result = $client->getIterator( 'Query', $query );
+	} catch ( Exception $e ) {
+		return new WP_Error( 'aws-error', $e->getMessage() );
+	}
+
+	$items = [];
+	foreach ( $result as $item ) {
+		$items[] = $item;
+	}
+
+	if ( empty( $items ) ) {
+		return new WP_Error( 'not-found', 'Item not found' );
+	}
+
+	// Flatten the DynamoDB item format
+	$item = array_map( function ( $item ) {
+		return array_values( $item )[0];
+	}, $items[0] );
+
+	return $item;
+}
