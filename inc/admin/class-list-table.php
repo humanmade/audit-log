@@ -22,6 +22,32 @@ class List_Table extends WP_List_Table {
 		];
 	}
 
+	protected function get_default_primary_column_name() {
+		return 'title';
+	}
+
+	protected function column_default( $item, $column_name ) {
+		return '';
+	}
+
+	protected function handle_row_actions( $item, $column_name, $primary ) {
+		if ( $column_name !== $primary ) {
+			return '';
+		}
+
+		$detail_url = add_query_arg( 'item_id', urlencode( $item['Id'] ), admin_url( 'tools.php?page=audit-log' ) );
+
+		$actions = [
+			'view' => sprintf(
+				'<a href="%s">%s</a>',
+				esc_url( $detail_url ),
+				esc_html__( 'View Details', 'audit-log' )
+			),
+		];
+
+		return $this->row_actions( $actions );
+	}
+
 	function prepare_items() {
 		$this->_column_headers = [ $this->get_columns(), [], $this->get_sortable_columns() ];
 		$this->_pagination_args = [
@@ -59,8 +85,9 @@ class List_Table extends WP_List_Table {
 	}
 
 	function column_title( array $item ) : string {
-		$name = sprintf( '<a href="%s">%s</a>', esc_url( add_query_arg( 'name', $item['Name'] ) ), esc_html( $item['Name'] ) );
-		return $name . '<br />' . $item['Description'];
+		$detail_url = add_query_arg( 'item_id', urlencode( $item['Id'] ), admin_url( 'tools.php?page=audit-log' ) );
+		$name = sprintf( '<a href="%s">%s</a>', esc_url( $detail_url ), esc_html( $item['Name'] ) );
+		return $name . '<br />' . esc_html( $item['Description'] );
 	}
 
 	function column_user( array $item ) : string {
