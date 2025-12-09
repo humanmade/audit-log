@@ -8,6 +8,10 @@ use WP_Error;
 
 function bootstrap() {
 	register_shutdown_function( __NAMESPACE__ . '\\send_buffered_items' );
+
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		CLI\bootstrap();
+	}
 }
 
 /**
