@@ -1,13 +1,22 @@
 <?php
+/**
+ * WP CLI commands for the Audit Log.
+ *
+ * @package HM\Platform\Audit_Log
+ */
 
 namespace HM\Platform\Audit_Log\CLI;
 
 use WP_CLI;
-use WP_CLI_Command;
 use WP_CLI\Utils;
-use function HM\Platform\Audit_Log\get_items;
-use function HM\Platform\Audit_Log\get_item;
+use WP_CLI_Command;
 
+use function HM\Platform\Audit_Log\get_item;
+use function HM\Platform\Audit_Log\get_items;
+
+/**
+ * WP CLI command for managing audit log items.
+ */
 class Command extends WP_CLI_Command {
 	/**
 	 * List audit log items.
@@ -56,6 +65,9 @@ class Command extends WP_CLI_Command {
 	 *     wp audit-log list --fields=id,date,type,user_ip
 	 *
 	 * @subcommand list
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
 	 */
 	public function list_( array $args, array $assoc_args ) : void {
 		$after  = isset( $assoc_args['after'] ) ? strtotime( $assoc_args['after'] ) : null;
@@ -117,7 +129,7 @@ class Command extends WP_CLI_Command {
 			];
 		}, $items );
 
-		// Default fields if not specified
+		// Default fields if not specified.
 		$default_fields = [ 'id', 'date', 'type', 'object', 'user', 'description' ];
 		$fields = ! empty( $assoc_args['fields'] ) ? explode( ',', $assoc_args['fields'] ) : $default_fields;
 		$fields = array_map( 'trim', $fields );
@@ -138,7 +150,7 @@ class Command extends WP_CLI_Command {
 	 * : The ID of the audit log item to retrieve.
 	 *
 	 * [--format=<format>]
-	 * : Render format. json, yaml. Default: json.
+	 * : Render format. table, json, yaml. Default: table.
 	 *
 	 * ## EXAMPLES
 	 *
@@ -149,6 +161,9 @@ class Command extends WP_CLI_Command {
 	 *     wp audit-log get 2024-01-15T10:30:45+00:00 --format=yaml
 	 *
 	 * @subcommand get
+	 *
+	 * @param array $args       Positional arguments.
+	 * @param array $assoc_args Associative arguments.
 	 */
 	public function get( array $args, array $assoc_args ) : void {
 		if ( empty( $args[0] ) ) {
@@ -162,7 +177,7 @@ class Command extends WP_CLI_Command {
 			WP_CLI::error( $item->get_error_message() );
 		}
 
-		// Prepare the full item data with all fields as key-value pairs (transposed for display)
+		// Prepare the full item data with all fields as key-value pairs.
 		$output_rows = [];
 		$item_data = [
 			'id'                => $item['Id'] ?? '',
@@ -189,7 +204,7 @@ class Command extends WP_CLI_Command {
 
 		Utils\format_items( $assoc_args['format'] ?? 'table', $output_rows, [ 'field', 'value' ] );
 
-		// Display event separately for better readability
+		// Display event separately for better readability.
 		$event_data = json_decode( $item['Event'] ?? '{}', true ) ?: [];
 		if ( ! empty( $event_data ) ) {
 			WP_CLI::line( '' );
