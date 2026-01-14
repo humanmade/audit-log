@@ -25,7 +25,7 @@ function bootstrap() {
  * @return void
  */
 function output_page() {
-	// Check if viewing a specific item
+	// Check if viewing a specific item.
 	if ( ! empty( $_GET['item_id'] ) ) {
 		output_item_page();
 	} else {
@@ -49,7 +49,7 @@ function output_list_page() {
  * @return void
  */
 function output_item_page() {
-	// Decode URL parameters first, then sanitize
+	// Decode URL parameters first, then sanitize.
 	$item_id = isset( $_GET['item_id'] ) ? sanitize_text_field( wp_unslash( $_GET['item_id'] ) ) : '';
 
 	if ( empty( $item_id ) ) {

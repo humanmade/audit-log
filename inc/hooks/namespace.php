@@ -7,10 +7,9 @@
 
 namespace HM\Platform\Audit_Log\Hooks;
 
+use function HM\Platform\Audit_Log\insert_item;
 use WP_Post;
 use WP_Term;
-
-use function HM\Platform\Audit_Log\insert_item;
 
 /**
  * Todo:

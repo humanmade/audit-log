@@ -8,9 +8,8 @@
 namespace HM\Platform\Audit_Log;
 
 use Exception;
-use WP_Error;
-
 use function Altis\get_aws_sdk;
+use WP_Error;
 
 /**
  * Bootstrap the audit log.
@@ -326,7 +325,7 @@ function get_item( string $item_id ) {
 		return new WP_Error( 'not-found', 'Item not found' );
 	}
 
-	// Flatten the DynamoDB item format
+	// Flatten the DynamoDB item format.
 	$item = array_map( function ( $item ) {
 		return array_values( $item )[0];
 	}, $items[0] );

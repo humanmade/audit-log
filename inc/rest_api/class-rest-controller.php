@@ -7,10 +7,9 @@
 
 namespace HM\Platform\Audit_Log\REST_API;
 
+use function HM\Platform\Audit_Log\get_items;
 use WP_Rest_Controller;
 use WP_REST_Server;
-
-use function HM\Platform\Audit_Log\get_items;
 
 /**
  * REST API Controller for audit log items.

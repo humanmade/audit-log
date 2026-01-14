@@ -7,9 +7,8 @@
 
 namespace HM\Platform\Audit_Log\Admin;
 
-use WP_List_Table;
-
 use function HM\Platform\Audit_Log\get_items;
+use WP_List_Table;
 
 /**
  * List Table for displaying audit log items.
@@ -135,7 +134,7 @@ class List_Table extends WP_List_Table {
 
 		if ( is_wp_error( $items ) ) {
 			// phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
-			error_log( print_r( $items, true ) );
+			error_log( 'Audit Log error: ' . $items->get_error_message() );
 		} else {
 			$this->items = $items['items'];
 			$this->_pagination_args['next'] = $items['has_more'];
