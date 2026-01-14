@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: Audit Log
  * Description: Offsite append-only audit log.
