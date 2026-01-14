@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Plugin Name: Audit Log
  * Description: Offsite append-only audit log.
@@ -13,6 +12,7 @@ require_once __DIR__ . '/inc/hooks/namespace.php';
 require_once __DIR__ . '/inc/admin/namespace.php';
 require_once __DIR__ . '/inc/rest_api/namespace.php';
 require_once __DIR__ . '/inc/rest_api/class-rest-controller.php';
+require_once __DIR__ . '/inc/cli/namespace.php';
 
 bootstrap();
 

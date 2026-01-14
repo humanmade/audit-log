@@ -1,4 +1,9 @@
 <?php
+/**
+ * Audit Log Core Functions.
+ *
+ * @package HM\Platform\Audit_Log
+ */
 
 namespace HM\Platform\Audit_Log;
 
@@ -6,8 +11,17 @@ use Exception;
 use function Altis\get_aws_sdk;
 use WP_Error;
 
+/**
+ * Bootstrap the audit log.
+ *
+ * @return void
+ */
 function bootstrap() {
 	register_shutdown_function( __NAMESPACE__ . '\\send_buffered_items' );
+
+	if ( defined( 'WP_CLI' ) && WP_CLI ) {
+		CLI\bootstrap();
+	}
 }
 
 /**
@@ -16,10 +30,10 @@ function bootstrap() {
  * Most global state fields are auto-discovered, so only a subset of params are required. Added items are buffered on script-execution
  * end (after a call to fastcgi_finish_request) to not slow down response times.
  *
- * @param string $name The name/type for the item. E.g. 'CreatedPost'
- * @param string $description A human readable description of what happened. Should be in the past simple passive. E.g "Hello World was updated"
- * @param string options $object The object that has changed / been created. Used as a reference for the log entry.
- * @param array optional $event Arbitrary array of data detailing the change event.
+ * @param string $name        The name/type for the item. E.g. 'CreatedPost'.
+ * @param string $description A human readable description of what happened. Should be in the past simple passive. E.g "Hello World was updated".
+ * @param mixed  $object      The object that has changed / been created. Used as a reference for the log entry.
+ * @param array  $event       Arbitrary array of data detailing the change event.
  * @return void
  */
 function insert_item( string $name, string $description, $object = '', array $event = [] ) {
@@ -76,6 +90,22 @@ function insert_item( string $name, string $description, $object = '', array $ev
 
 /**
  * Queue an item to be sent to the audit log on script end.
+ *
+ * @param int    $date              Timestamp of the event.
+ * @param string $name              Event name/type.
+ * @param string $description       Human readable description.
+ * @param string $user_display_name User's display name.
+ * @param string $user_email        User's email address.
+ * @param int    $user_id           User ID.
+ * @param string $user_username     User's username.
+ * @param string $user_ip           User's IP address.
+ * @param string $user_avatar_url   User's avatar URL.
+ * @param string $object_id         Object identifier.
+ * @param int    $site_id           Site ID.
+ * @param string $site_url          Site URL.
+ * @param string $request_id        Request ID.
+ * @param array  $event             Event data.
+ * @return void
  */
 function buffer_send_item( int $date, string $name, string $description, string $user_display_name, string $user_email, int $user_id, string $user_username, string $user_ip, string $user_avatar_url, string $object_id, int $site_id, string $site_url, string $request_id, array $event = [] ) {
 	global $hm_platform_audit_log_buffered_items;
@@ -102,16 +132,31 @@ function buffer_send_item( int $date, string $name, string $description, string 
 	$hm_platform_audit_log_buffered_items[] = $body;
 }
 
+/**
+ * Get the SQS queue URL.
+ *
+ * @return string SQS queue URL.
+ */
 function get_sqs_queue_url() : string {
 	$url = defined( 'AUDIT_LOG_SQS_QUEUE_URL' ) ? AUDIT_LOG_SQS_QUEUE_URL : '';
 	return apply_filters( 'hm_platform_audit_log_sqs_queue_url', $url );
 }
 
+/**
+ * Get the DynamoDB table name.
+ *
+ * @return string DynamoDB table name.
+ */
 function get_dynamodb_table() : string {
 	$url = defined( 'AUDIT_LOG_DYNAMO_DB_TABLE' ) ? AUDIT_LOG_DYNAMO_DB_TABLE : '';
 	return apply_filters( 'hm_platform_audit_log_dynamodb_table', $url );
 }
 
+/**
+ * Send buffered items to the audit log.
+ *
+ * @return void
+ */
 function send_buffered_items() {
 	global $hm_platform_audit_log_buffered_items;
 	if ( ! $hm_platform_audit_log_buffered_items ) {
@@ -149,12 +194,12 @@ function send_buffered_items() {
 /**
  * Get items from the Audit Log.
  *
- * @param string $previous_item The Id of the previous item, for pagination.
- * @param array  $eq_filters A map of key => value pairs for equality filters.
- * @param integer $from_date Limit results to items after the specified date.
- * @param integer $to_date Limit results to items before the specified date.
- * @param boolean $descending Whether to get the items in descending order.
- * @return array [ 'item => [ [ 'Id  => string, Name => string ... ] ], 'has_more' => bool ]
+ * @param string  $previous_item The Id of the previous item, for pagination.
+ * @param array   $eq_filters    A map of key => value pairs for equality filters.
+ * @param int     $from_date     Limit results to items after the specified date.
+ * @param int     $to_date       Limit results to items before the specified date.
+ * @param boolean $descending    Whether to get the items in descending order.
+ * @return array|WP_Error Array with 'items' and 'has_more' keys, or WP_Error on failure.
  */
 function get_items( string $previous_item = null, array $eq_filters = [], int $from_date = null, int $to_date = null, $descending = true ) {
 	$client = get_aws_sdk()->createDynamoDB( apply_filters( 'hm_platform_audit_log_dynamodb_client_args', [] ) );
@@ -238,4 +283,52 @@ function get_items( string $previous_item = null, array $eq_filters = [], int $f
 		'items' => $items,
 		'has_more' => $has_more,
 	];
+}
+
+/**
+ * Get a single audit log item by ID.
+ *
+ * @param string $item_id The ID of the item to retrieve.
+ * @return array|WP_Error The item data or WP_Error on failure.
+ */
+function get_item( string $item_id ) {
+	$client = get_aws_sdk()->createDynamoDB( apply_filters( 'hm_platform_audit_log_dynamodb_client_args', [] ) );
+
+	$conditions = [
+		'Site_Id' => [
+			'AttributeValueList' => [ [ 'N' => (string) get_current_blog_id() ] ],
+			'ComparisonOperator' => 'EQ',
+		],
+		'Id' => [
+			'AttributeValueList' => [ [ 'S' => $item_id ] ],
+			'ComparisonOperator' => 'EQ',
+		],
+	];
+
+	$query = [
+		'TableName'     => get_dynamodb_table(),
+		'KeyConditions' => $conditions,
+	];
+
+	try {
+		$result = $client->getIterator( 'Query', $query );
+	} catch ( Exception $e ) {
+		return new WP_Error( 'aws-error', $e->getMessage() );
+	}
+
+	$items = [];
+	foreach ( $result as $item ) {
+		$items[] = $item;
+	}
+
+	if ( empty( $items ) ) {
+		return new WP_Error( 'not-found', 'Item not found' );
+	}
+
+	// Flatten the DynamoDB item format.
+	$item = array_map( function ( $item ) {
+		return array_values( $item )[0];
+	}, $items[0] );
+
+	return $item;
 }

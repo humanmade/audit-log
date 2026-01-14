@@ -1,4 +1,9 @@
 <?php
+/**
+ * Audit Log REST API Controller.
+ *
+ * @package HM\Platform\Audit_Log
+ */
 
 namespace HM\Platform\Audit_Log\REST_API;
 
@@ -6,8 +11,23 @@ use function HM\Platform\Audit_Log\get_items;
 use WP_Rest_Controller;
 use WP_REST_Server;
 
+/**
+ * REST API Controller for audit log items.
+ */
 class REST_Controller extends WP_Rest_Controller {
+
+	/**
+	 * REST API namespace.
+	 *
+	 * @var string
+	 */
 	protected $namespace = 'audit-log/v1';
+
+	/**
+	 * Register REST API routes.
+	 *
+	 * @return void
+	 */
 	public function register_routes() {
 		register_rest_route(
 			$this->namespace,
@@ -49,10 +69,22 @@ class REST_Controller extends WP_Rest_Controller {
 		);
 	}
 
+	/**
+	 * Check if the current user has permission to get items.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
+	 * @return bool True if user has permission.
+	 */
 	public function get_items_permissions_check( $request ) : bool {
 		return current_user_can( 'manage_options' );
 	}
 
+	/**
+	 * Get audit log items.
+	 *
+	 * @param \WP_REST_Request $request REST request object.
+	 * @return array Array of items.
+	 */
 	public function get_items( $request ) : array {
 		$eq_filters = [];
 		if ( ! empty( $request['object'] ) ) {
@@ -73,6 +105,13 @@ class REST_Controller extends WP_Rest_Controller {
 		}, $items['items'] );
 	}
 
+	/**
+	 * Prepare item for REST response.
+	 *
+	 * @param array            $item    Item data.
+	 * @param \WP_REST_Request $request REST request object.
+	 * @return array Prepared item data.
+	 */
 	public function prepare_item_for_response( $item, $request ) : array {
 		return [
 			'id'                => $item['Id'],
