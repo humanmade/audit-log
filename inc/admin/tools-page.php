@@ -5,6 +5,7 @@
  * @package HM\Platform\Audit_Log
  */
 
+// phpcs:ignore HM.Files.NamespaceDirectoryName.NameMismatch -- Admin namespace is intentional.
 namespace HM\Platform\Audit_Log\Admin;
 
 ?>

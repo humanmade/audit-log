@@ -10,8 +10,8 @@ namespace HM\Platform\Audit_Log\CLI;
 use function HM\Platform\Audit_Log\get_item;
 use function HM\Platform\Audit_Log\get_items;
 use WP_CLI;
-use WP_CLI_Command;
 use WP_CLI\Utils;
+use WP_CLI_Command;
 
 /**
  * WP CLI command for managing audit log items.

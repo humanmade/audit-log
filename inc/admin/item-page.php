@@ -5,7 +5,7 @@
  * @var array $item The audit log item data
  */
 
-// Ensure item is set and not an error
+// Ensure item is set and not an error.
 if ( is_wp_error( $item ) || empty( $item ) ) {
 	wp_die( 'Invalid audit log item.' );
 }
@@ -66,14 +66,11 @@ if ( is_wp_error( $item ) || empty( $item ) ) {
 			<tr>
 				<th><?php esc_html_e( 'Event Data', 'audit-log' ); ?></th>
 				<td>
-					<pre style="background: #f5f5f5; padding: 10px; border-radius: 3px; overflow: auto;"><code><?php
-						$event = json_decode( $item['Event'] ?? '{}', true ) ?: [];
-						if ( empty( $event ) ) {
-							echo esc_html( '(empty)' );
-						} else {
-							echo esc_html( json_encode( $event, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
-						}
-					?></code></pre>
+					<?php
+					$event = json_decode( $item['Event'] ?? '{}', true ) ?: [];
+					$event_output = empty( $event ) ? '(empty)' : json_encode( $event, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES );
+					?>
+					<pre style="background: #f5f5f5; padding: 10px; border-radius: 3px; overflow: auto;"><code><?php echo esc_html( $event_output ); ?></code></pre>
 				</td>
 			</tr>
 		</tbody>
